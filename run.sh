@@ -196,7 +196,15 @@ do
     # Remove Images
     if [ -s ToBeCleaned ]; then
         echo "=> Start to clean $(cat ToBeCleaned | wc -l) images"
-        docker rmi $(cat ToBeCleaned) 2>/dev/null
+        for image in $(cat ToBeCleaned)
+        do
+            tags=$(docker inspect --format='{{range $tag := .RepoTags}}{{$tag}}  {{end}}' $image)
+            if [[ -n "$tags" ]]; then
+                docker rmi $tags
+            else
+                docker rmi $image 2>/dev/null
+            fi
+        done
         (( DIFF_LAYER=${ALL_LAYER_NUM}- $(docker images -a | tail -n +2 | wc -l) ))
         (( DIFF_IMG=$(cat ImageIdList | wc -l) - $(docker images | tail -n +2 | wc -l) ))
         if [ ! ${DIFF_LAYER} -gt 0 ]; then
